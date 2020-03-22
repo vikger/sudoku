@@ -146,6 +146,15 @@ test_grid() ->
      [0,0,0,4,1,9,0,0,5],
      [0,0,0,0,8,0,0,7,9]].
 
+exercise(N) ->
+    Grid = generate_grid(N),
+    case solution(Grid) of
+        {ok, Solution} ->
+            generalize_grid(Solution);
+        error ->
+            exercise(N - 1)
+    end.
+
 generate_grid(N) ->
     generate_grid(empty_grid(), N).
 
