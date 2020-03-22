@@ -89,22 +89,18 @@ square_range(9) ->
     [7, 8, 9].
 
 solve_grid(Grid) ->
-    check(Grid, empty(Grid)).
+    check(Grid, empty(Grid), []).
 
-check(Grid, [{Row, Col} | Empty]) ->
-    solve({Row, Col, possible_values(Grid, Row, Col), Grid}, Empty);
-check(Grid, []) ->
-    {ok, Grid}.
+check(Grid, [{Row, Col} | Empty], Solutions) ->
+    solve({Row, Col, possible_values(Grid, Row, Col), Grid}, Empty, Solutions);
+check(Grid, [], Solutions) ->
+    [Grid | Solutions].
 
-solve({Row, Col, [Value | Values], Grid}, Empty) ->
-    case check(put(Grid, Row, Col, Value), Empty) of
-        {ok, NewGrid} ->
-            {ok, NewGrid};
-        error ->
-            solve({Row, Col, Values, Grid}, Empty)
-    end;
-solve({_, _, [], _}, _) ->
-    error.
+solve({Row, Col, [Value | Values], Grid}, Empty, Solutions) ->
+    NewSolutions = check(put(Grid, Row, Col, Value), Empty, Solutions),
+    solve({Row, Col, Values, Grid}, Empty, NewSolutions);
+solve({_, _, [], _}, _, Solutions) ->
+    Solutions.
 
 empty(Grid) ->
     empty(Grid, 1, []).
