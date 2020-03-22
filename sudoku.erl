@@ -88,8 +88,26 @@ square_range(8) ->
 square_range(9) ->
     [7, 8, 9].
 
-solve_grid(Grid) ->
+solution(Grid) ->
+    check(Grid, empty(Grid)).
+
+all_solutions(Grid) ->
     check(Grid, empty(Grid), []).
+
+check(Grid, [{Row, Col} | Empty]) ->
+    solve({Row, Col, possible_values(Grid, Row, Col), Grid}, Empty);
+check(Grid, []) ->
+    {ok, Grid}.
+
+solve({Row, Col, [Value | Values], Grid}, Empty) ->
+    case check(put(Grid, Row, Col, Value), Empty) of
+        {ok, NewGrid} ->
+            {ok, NewGrid};
+        error ->
+            solve({Row, Col, Values, Grid}, Empty)
+    end;
+solve({_, _, [], _}, _) ->
+    error.
 
 check(Grid, [{Row, Col} | Empty], Solutions) ->
     solve({Row, Col, possible_values(Grid, Row, Col), Grid}, Empty, Solutions);
@@ -127,3 +145,41 @@ test_grid() ->
      [0,6,0,0,0,0,2,8,0],
      [0,0,0,4,1,9,0,0,5],
      [0,0,0,0,8,0,0,7,9]].
+
+generate_grid(N) ->
+    generate_grid(empty_grid(), N).
+
+generate_grid(Grid, 0) ->
+    Grid;
+generate_grid(Grid, N) ->
+    Row = rand:uniform(9),
+    Col = rand:uniform(9),
+    case get(Grid, Row, Col) of
+        0 ->
+            case possible_values(Grid, Row, Col) of
+                [] ->
+                    generate_grid(Grid, N);
+                Values ->
+                    [Value | _] = shuffle(Values),
+                    NewGrid = put(Grid, Row, Col, Value),
+                    generate_grid(NewGrid, N - 1)
+            end;
+        _ ->
+            generate_grid(Grid, N)
+    end.
+
+generalize_grid(Grid) ->
+    Row = rand:uniform(9),
+    Col = rand:uniform(9),
+    case get(Grid, Row, Col) of
+        0 ->
+            generalize_grid(Grid);
+        _ ->
+            NewGrid = put(Grid, Row, Col, 0),
+            case all_solutions(NewGrid) of
+                [_] ->
+                    generalize_grid(NewGrid);
+                _ ->
+                    Grid
+            end
+    end.
