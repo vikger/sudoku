@@ -1,6 +1,6 @@
 -module(sudoku_logic).
 
--export([get/3, put/4, is_valid/4, check_grid/1, solution/1, possible_values/3, exercise/1]).
+-export([get/3, put/4, is_valid/4, check_grid/1, solution/1, possible_values/3, exercise/1, generate_grid/1]).
 
 get(Grid, Row, Col) ->
     lists:nth(Col, lists:nth(Row, Grid)).
@@ -72,24 +72,9 @@ filter(List, []) ->
 filter(List, [Value | Values]) ->
     filter(lists:delete(Value, List), Values).
 
-square_range(1) ->
-    [1, 2, 3];
-square_range(2) ->
-    [1, 2, 3];
-square_range(3) ->
-    [1, 2, 3];
-square_range(4) ->
-    [4, 5, 6];
-square_range(5) ->
-    [4, 5, 6];
-square_range(6) ->
-    [4, 5, 6];
-square_range(7) ->
-    [7, 8, 9];
-square_range(8) ->
-    [7, 8, 9];
-square_range(9) ->
-    [7, 8, 9].
+square_range(N) ->
+    Min = 3 * ((N - 1) div 3) + 1,
+    [Min, Min + 1, Min + 2].
 
 solution(Grid) ->
     check(Grid, empty(Grid)).
@@ -137,17 +122,6 @@ empty_row([_ | Cols], RowNum, ColNum, Empty) ->
     empty_row(Cols, RowNum, ColNum + 1, Empty);
 empty_row([], _, _, Empty) ->
     Empty.
-
-test_grid() ->
-    [[5,3,0,0,7,0,0,0,0],
-     [6,0,0,1,9,5,0,0,0],
-     [0,9,8,0,0,0,0,6,0],
-     [8,0,0,0,6,0,0,0,3],
-     [4,0,0,8,0,3,0,0,1],
-     [7,0,0,0,2,0,0,0,6],
-     [0,6,0,0,0,0,2,8,0],
-     [0,0,0,4,1,9,0,0,5],
-     [0,0,0,0,8,0,0,7,9]].
 
 exercise(N) ->
     Grid = generate_grid(N),
