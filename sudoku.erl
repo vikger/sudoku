@@ -30,7 +30,53 @@ grid() ->
 
 init() ->
     self() ! generate_spare,
-    loop(sudoku_logic:exercise(30), no_spare).
+    waiting(sudoku_logic:exercise(30)).
+
+waiting(Exercise) ->
+    receive
+        {Pid, new_game} ->
+            Pid ! Exercise,
+            loop(Exercise);
+        generate_spare ->
+            waiting(Exercise, sudoku_logic:exercise(30))
+    end.
+
+waiting(Exercise, Spare) ->
+    receive
+        {Pid, new_game} ->
+            Pid ! Exercise,
+            loop(Exercise, Spare)
+    end.
+
+loop({Grid, Solution} = Exercise) ->
+    receive
+        {Pid, {put, Row, Col, Value}} ->
+            case sudoku_logic:is_valid(Grid, Row, Col, Value) of
+                true ->
+                    NewGrid = sudoku_logic:put(Grid, Row, Col, Value),
+                    Pid ! ok,
+                    loop({NewGrid, Solution});
+                false ->
+                    Pid ! invalid,
+                    loop(Exercise)
+            end;
+        {Pid, {value, Row, Col}} ->
+            Pid ! sudoku_logic:get(Solution, Row, Col),
+            loop(Exercise);
+        {Pid, {values, Row, Col}} ->
+            case sudoku_logic:get(Grid, Row, Col) of
+                0 ->
+                    Pid ! sudoku_logic:possible_values(Grid, Row, Col);
+                _ ->
+                    Pid ! []
+            end,
+            loop(Exercise);
+        generate_spare ->
+            loop(Exercise, sudoku_logic:exercise(30));
+        {Pid, grid} ->
+            Pid ! Grid,
+            loop(Exercise)
+    end.
 
 loop({Grid, Solution} = Exercise, Spare) ->
     receive
@@ -55,12 +101,10 @@ loop({Grid, Solution} = Exercise, Spare) ->
                     Pid ! []
             end,
             loop(Exercise, Spare);
-        generate_spare ->
-            loop(Exercise, sudoku_logic:exercise(30));
         {Pid, new_game} ->
             Pid ! Spare,
             self() ! generate_spare,
-            loop(Spare, no_spare);
+            loop(Spare);
         {Pid, grid} ->
             Pid ! Grid,
             loop(Exercise, Spare)
