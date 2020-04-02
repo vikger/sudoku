@@ -2,45 +2,31 @@
 
 -export([start/0, new_game/0, put/3, value/2, values/2, grid/0]).
 
+
+%% API
+
 start() ->
     Pid = spawn(fun () -> init() end),
     register(sudoku, Pid),
     ok.
 
 new_game() ->
-    sudoku ! {self(), new_game},
-    receive
-        Grid ->
-            Grid
-    end.
+    send(new_game).
 
 put(Row, Col, Value) ->
-    sudoku ! {self(), {put, Row, Col, Value}},
-    receive
-        Response ->
-            Response
-    end.
+    send({put, Row, Col, Value}).
 
 value(Row, Col) ->
-    sudoku ! {self(), {value, Row, Col}},
-    receive
-        Response ->
-            Response
-    end.
+    send({value, Row, Col}).
 
 values(Row, Col) ->
-    sudoku ! {self(), {values, Row, Col}},
-    receive
-        Response ->
-            Response
-    end.
+    send({values, Row, Col}).
 
 grid() ->
-    sudoku ! {self(), grid},
-    receive
-        Response ->
-            Response
-    end.
+    send(grid).
+
+
+%% Internal functions
 
 init() ->
     self() ! generate_spare,
@@ -59,7 +45,8 @@ loop({Grid, Solution} = Exercise, Spare) ->
                     loop(Exercise, Spare)
             end;
         {Pid, {value, Row, Col}} ->
-            Pid ! sudoku_logic:get(Solution, Row, Col);
+            Pid ! sudoku_logic:get(Solution, Row, Col),
+            loop(Exercise, Spare);
         {Pid, {values, Row, Col}} ->
             case sudoku_logic:get(Grid, Row, Col) of
                 0 ->
@@ -77,4 +64,11 @@ loop({Grid, Solution} = Exercise, Spare) ->
         {Pid, grid} ->
             Pid ! Grid,
             loop(Exercise, Spare)
+    end.
+
+send(Message) ->
+    sudoku ! {self(), Message},
+    receive
+        Response ->
+            Response
     end.
