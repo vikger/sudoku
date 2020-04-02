@@ -29,7 +29,8 @@ grid() ->
 %% Internal functions
 
 init() ->
-    self() ! generate_spare,
+    Self = self(),
+    spawn(fun () -> new_exercise(Self) end),
     waiting(sudoku_logic:exercise(30)).
 
 waiting(Exercise) ->
@@ -37,8 +38,8 @@ waiting(Exercise) ->
         {Pid, new_game} ->
             Pid ! Exercise,
             loop(Exercise);
-        generate_spare ->
-            waiting(Exercise, sudoku_logic:exercise(30))
+        {new_exercise, Spare} ->
+            waiting(Exercise, Spare)
     end.
 
 waiting(Exercise, Spare) ->
@@ -50,6 +51,8 @@ waiting(Exercise, Spare) ->
 
 loop({Grid, Solution} = Exercise) ->
     receive
+        {new_exercise, Spare} ->
+            loop(Exercise, Spare);
         {Pid, {put, Row, Col, Value}} ->
             case sudoku_logic:is_valid(Grid, Row, Col, Value) of
                 true ->
@@ -71,8 +74,6 @@ loop({Grid, Solution} = Exercise) ->
                     Pid ! []
             end,
             loop(Exercise);
-        generate_spare ->
-            loop(Exercise, sudoku_logic:exercise(30));
         {Pid, grid} ->
             Pid ! Grid,
             loop(Exercise)
@@ -103,12 +104,16 @@ loop({Grid, Solution} = Exercise, Spare) ->
             loop(Exercise, Spare);
         {Pid, new_game} ->
             Pid ! Spare,
-            self() ! generate_spare,
+            Self = self(),
+            spawn(fun () -> new_exercise(Self) end),
             loop(Spare);
         {Pid, grid} ->
             Pid ! Grid,
             loop(Exercise, Spare)
     end.
+
+new_exercise(Pid) ->
+    Pid ! {new_exercise, sudoku_logic:exercise(30)}.
 
 send(Message) ->
     sudoku ! {self(), Message},
